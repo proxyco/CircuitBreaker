@@ -1,29 +1,29 @@
 import Foundation
 
-public class TestService {
+open class TestService {
     
-    public typealias CompletionBlock = (NSData?, ErrorType?) -> Void
+    public typealias CompletionBlock = (Data?, Error?) -> Void
     
-    public func successCall(completion: CompletionBlock) {
+    open func successCall(_ completion: @escaping CompletionBlock) {
         makeCall("get", completion: completion)
     }
     
-    public func failureCall(completion: CompletionBlock) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(0.1 * Double(NSEC_PER_SEC))), dispatch_get_main_queue()) {
+    open func failureCall(_ completion: @escaping CompletionBlock) {
+        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + Double(Int64(0.1 * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC)) {
             completion(nil, NSError(domain: "TestService", code: 404, userInfo: nil))
         }
     }
     
-    public func delayedCall(delayInSeconds: Int, completion: CompletionBlock) {
+    open func delayedCall(_ delayInSeconds: Int, completion: @escaping CompletionBlock) {
         makeCall("delay/\(delayInSeconds)", completion: completion)
     }
     
-    private func makeCall(path: String, completion: CompletionBlock) {
-        let task = NSURLSession.sharedSession().dataTaskWithURL(NSURL(string: "https://httpbin.org/\(path)")!) { data, response, error in
-            dispatch_async(dispatch_get_main_queue()) {
+    fileprivate func makeCall(_ path: String, completion: @escaping CompletionBlock) {
+        let task = URLSession.shared.dataTask(with: URL(string: "https://httpbin.org/\(path)")!, completionHandler: { data, response, error in
+            DispatchQueue.main.async {
                 completion(data, error)
             }
-        }
+        }) 
         task.resume()
     }
     

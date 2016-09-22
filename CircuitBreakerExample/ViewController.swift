@@ -5,9 +5,9 @@ class ViewController: UIViewController {
     
     @IBOutlet weak var infoTextView: UITextView!
     
-    private let testService = TestService()
-    private var circuitBreaker: CircuitBreaker?
-    private var callShouldSucceed = false
+    fileprivate let testService = TestService()
+    fileprivate var circuitBreaker: CircuitBreaker?
+    fileprivate var callShouldSucceed = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -42,21 +42,21 @@ class ViewController: UIViewController {
         }
     }
     
-    @IBAction func didTapFailureCall(sender: AnyObject) {
+    @IBAction func didTapFailureCall(_ sender: AnyObject) {
         logInfo("> Start Failure Call")
         callShouldSucceed = false
         circuitBreaker?.execute()
     }
     
-    @IBAction func didTapSuccessCall(sender: AnyObject) {
+    @IBAction func didTapSuccessCall(_ sender: AnyObject) {
         logInfo("> Start Success Call")
         callShouldSucceed = true
         circuitBreaker?.execute()
     }
     
-    private func logInfo(info: String) {
+    fileprivate func logInfo(_ info: String) {
         var newInfo = infoTextView.text
-        newInfo.appendContentsOf("\(info)\n")
+        newInfo.append("\(info)\n")
         infoTextView.text = newInfo
     }
     

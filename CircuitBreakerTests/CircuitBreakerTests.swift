@@ -3,8 +3,8 @@ import XCTest
 
 class CircuitBreakerTests: XCTestCase {
     
-    private var testService: TestService!
-    private var circuitBreaker: CircuitBreaker!
+    fileprivate var testService: TestService!
+    fileprivate var circuitBreaker: CircuitBreaker!
     
     override func setUp() {
         super.setUp()
@@ -21,7 +21,7 @@ class CircuitBreakerTests: XCTestCase {
     }
     
     func testSuccess() {
-        let expectation = expectationWithDescription("Successful call")
+        let expectation = self.expectation(description: "Successful call")
         
         circuitBreaker = CircuitBreaker()
         circuitBreaker.call = { [weak self] circuitBreaker in
@@ -34,11 +34,11 @@ class CircuitBreakerTests: XCTestCase {
         }
         circuitBreaker.execute()
         
-        waitForExpectationsWithTimeout(10) { _ in }
+        waitForExpectations(timeout: 10) { _ in }
     }
     
     func testTimeout() {
-        let expectation = expectationWithDescription("Timed out call")
+        let expectation = self.expectation(description: "Timed out call")
         
         circuitBreaker = CircuitBreaker(timeout: 3.0)
         circuitBreaker.call = { [weak self] circuitBreaker in
@@ -54,11 +54,11 @@ class CircuitBreakerTests: XCTestCase {
         }
         circuitBreaker.execute()
         
-        waitForExpectationsWithTimeout(15) { _ in }
+        waitForExpectations(timeout: 15) { _ in }
     }
     
     func testFailure() {
-        let expectation = expectationWithDescription("Failure call")
+        let expectation = self.expectation(description: "Failure call")
         
         circuitBreaker = CircuitBreaker(timeout: 10.0, maxRetries: 1)
         circuitBreaker.call = { [weak self] circuitBreaker in
@@ -78,11 +78,11 @@ class CircuitBreakerTests: XCTestCase {
         }
         circuitBreaker.execute()
         
-        waitForExpectationsWithTimeout(10) { _ in }
+        waitForExpectations(timeout: 10) { _ in }
     }
     
     func testTripping() {
-        let expectation = expectationWithDescription("Tripped call")
+        let expectation = self.expectation(description: "Tripped call")
         
         circuitBreaker = CircuitBreaker(
             timeout: 10.0,
@@ -93,7 +93,7 @@ class CircuitBreakerTests: XCTestCase {
         )
         
         circuitBreaker.didTrip = { circuitBreaker, error in
-            XCTAssertTrue(circuitBreaker.state == .Open)
+            XCTAssertTrue(circuitBreaker.state == .open)
             XCTAssertTrue(circuitBreaker.failureCount == circuitBreaker.maxRetries + 1)
             XCTAssertTrue((error as! NSError).code == 404)
             circuitBreaker.reset()
@@ -106,13 +106,13 @@ class CircuitBreakerTests: XCTestCase {
         }
         circuitBreaker.execute()
         
-        waitForExpectationsWithTimeout(100) { error in
+        waitForExpectations(timeout: 100) { error in
             print(error)
         }
     }
     
     func testReset() {
-        let expectation = expectationWithDescription("Reset call")
+        let expectation = self.expectation(description: "Reset call")
         
         circuitBreaker = CircuitBreaker(
             timeout: 10.0,
@@ -122,10 +122,10 @@ class CircuitBreakerTests: XCTestCase {
             resetTimeout: 2.0
         )
         circuitBreaker.call = { [weak self] circuitBreaker in
-            if circuitBreaker.state == .HalfOpen {
+            if circuitBreaker.state == .halfOpen {
                 self?.testService?.successCall { data, error in
                     circuitBreaker.success()
-                    XCTAssertTrue(circuitBreaker.state == .Closed)
+                    XCTAssertTrue(circuitBreaker.state == .closed)
                     expectation.fulfill()
                 }
                 return
@@ -137,11 +137,11 @@ class CircuitBreakerTests: XCTestCase {
         }
         circuitBreaker.execute()
         
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(4.0 * Double(NSEC_PER_SEC))), dispatch_get_main_queue()) {
+        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + Double(Int64(4.0 * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC)) {
             self.circuitBreaker.execute()
         }
         
-        waitForExpectationsWithTimeout(10) { _ in }
+        waitForExpectations(timeout: 10) { _ in }
     }
     
 }

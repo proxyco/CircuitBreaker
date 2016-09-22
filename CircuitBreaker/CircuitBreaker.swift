@@ -3,47 +3,47 @@
 
 import Foundation
 
-public class CircuitBreaker {
+open class CircuitBreaker {
     
     public enum State {
-        case Closed
-        case Open
-        case HalfOpen
+        case closed
+        case open
+        case halfOpen
     }
     
-    public let timeout: NSTimeInterval
-    public let maxRetries: Int
-    public let timeBetweenRetries: NSTimeInterval
-    public let exponentialBackoff: Bool
-    public let resetTimeout: NSTimeInterval
-    public var call: (CircuitBreaker -> Void)?
-    public var didTrip: ((CircuitBreaker, ErrorType?) -> Void)?
-    public private(set) var failureCount = 0
+    open let timeout: TimeInterval
+    open let maxRetries: Int
+    open let timeBetweenRetries: TimeInterval
+    open let exponentialBackoff: Bool
+    open let resetTimeout: TimeInterval
+    open var call: ((CircuitBreaker) -> Void)?
+    open var didTrip: ((CircuitBreaker, Error?) -> Void)?
+    open fileprivate(set) var failureCount = 0
     
-    public var state: State {
+    open var state: State {
         if let lastFailureTime = lastFailureTime
-            where (failureCount > maxRetries) &&
-                (NSDate().timeIntervalSince1970 - lastFailureTime) > resetTimeout {
-                    return .HalfOpen
+            , (failureCount > maxRetries) &&
+                (Date().timeIntervalSince1970 - lastFailureTime) > resetTimeout {
+                    return .halfOpen
         }
         
         if failureCount > maxRetries {
-            return .Open
+            return .open
         }
         
-        return .Closed
+        return .closed
     }
     
-    private var lastError: ErrorType?
-    private var lastFailureTime: NSTimeInterval?
-    private var timer: NSTimer?
+    fileprivate var lastError: Error?
+    fileprivate var lastFailureTime: TimeInterval?
+    fileprivate var timer: Timer?
     
     public init(
-        timeout: NSTimeInterval = 10,
+        timeout: TimeInterval = 10,
         maxRetries: Int = 2,
-        timeBetweenRetries: NSTimeInterval = 2,
+        timeBetweenRetries: TimeInterval = 2,
         exponentialBackoff: Bool = true,
-        resetTimeout: NSTimeInterval = 10) {
+        resetTimeout: TimeInterval = 10) {
             self.timeout = timeout
             self.maxRetries = maxRetries
             self.timeBetweenRetries = timeBetweenRetries
@@ -53,36 +53,36 @@ public class CircuitBreaker {
     
     // MARK: - Public API
     
-    public func execute() {
+    open func execute() {
         timer?.invalidate()
         
         switch state {
-        case .Closed, .HalfOpen:
+        case .closed, .halfOpen:
             doCall()
-        case .Open:
+        case .open:
             trip()
         }
     }
     
-    public func success() {
+    open func success() {
         reset()
     }
     
-    public func failure(error: ErrorType? = nil) {
+    open func failure(_ error: Error? = nil) {
         timer?.invalidate()
         lastError = error
-        lastFailureTime = NSDate().timeIntervalSince1970
+        lastFailureTime = Date().timeIntervalSince1970
         failureCount += 1
         
         switch state {
-        case .Closed, .HalfOpen:
+        case .closed, .halfOpen:
             retryAfterDelay()
-        case .Open:
+        case .open:
             trip()
         }
     }
     
-    public func reset() {
+    open func reset() {
         timer?.invalidate()
         failureCount = 0
         lastFailureTime = nil
@@ -91,38 +91,38 @@ public class CircuitBreaker {
     
     // MARK: - Call & Timeout
     
-    private func doCall() {
+    fileprivate func doCall() {
         call?(self)
         startTimer(timeout, selector: #selector(didTimeout(_:)))
     }
     
-    @objc private func didTimeout(timer: NSTimer) {
+    @objc fileprivate func didTimeout(_ timer: Timer) {
         failure()
     }
     
     // MARK: - Retry
     
-    private func retryAfterDelay() {
+    fileprivate func retryAfterDelay() {
         let delay = exponentialBackoff ? pow(timeBetweenRetries, Double(failureCount)) : timeBetweenRetries
         startTimer(delay, selector: #selector(shouldRetry(_:)))
     }
     
-    @objc private func shouldRetry(timer: NSTimer) {
+    @objc fileprivate func shouldRetry(_ timer: Timer) {
         doCall()
     }
     
     // MARK: - Trip
     
-    private func trip() {
+    fileprivate func trip() {
         didTrip?(self, lastError)
     }
     
     // MARK: - Timer
     
-    private func startTimer(delay: NSTimeInterval, selector: Selector) {
+    fileprivate func startTimer(_ delay: TimeInterval, selector: Selector) {
         timer?.invalidate()
-        timer = NSTimer.scheduledTimerWithTimeInterval(
-            delay,
+        timer = Timer.scheduledTimer(
+            timeInterval: delay,
             target: self,
             selector: selector,
             userInfo: nil,
